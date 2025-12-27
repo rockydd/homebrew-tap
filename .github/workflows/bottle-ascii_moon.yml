@@ -85,6 +85,13 @@ jobs:
             *.json
           if-no-files-found: error
 
+      - name: Cleanup tap (avoid setup-homebrew post cleanup failure)
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          brew untap rockydd/tap >/dev/null 2>&1 || true
+
   publish:
     if: github.actor != 'github-actions[bot]'
     name: Publish bottles + update formula
@@ -196,6 +203,13 @@ jobs:
           git add ascii_moon.rb
           git commit -m "ascii_moon: add bottles for v${{ steps.meta.outputs.version }}"
           git push
+
+      - name: Cleanup tap (best-effort)
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          brew untap rockydd/tap >/dev/null 2>&1 || true
 
 
 
