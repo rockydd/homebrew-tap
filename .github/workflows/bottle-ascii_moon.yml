@@ -19,6 +19,9 @@ env:
   HOMEBREW_NO_ANALYTICS: 1
   HOMEBREW_NO_AUTO_UPDATE: 1
   HOMEBREW_NO_INSTALL_CLEANUP: 1
+  # Prevent setup-homebrew from moving the tap checkout into $GITHUB_WORKSPACE
+  # and creating a symlink that our workflow can accidentally replace.
+  GITHUB_ACTIONS_HOMEBREW_SELF_HOSTED: 1
 
 jobs:
   build:
@@ -42,27 +45,18 @@ jobs:
       - name: Set up Homebrew
         uses: Homebrew/actions/setup-homebrew@master
 
-      - name: Tap this repository (local)
-        shell: bash
-        run: |
-          set -euo pipefail
-          # If the tap already exists (e.g. from a previous step), remove it so
-          # we can retap to this workflow's checkout path.
-          brew untap rockydd/tap >/dev/null 2>&1 || true
-          brew tap rockydd/tap "${GITHUB_WORKSPACE}"
-
       - name: Install (build bottle)
         shell: bash
         run: |
           set -euo pipefail
-          brew install --build-bottle rockydd/tap/ascii_moon
+          brew install --build-bottle rockydd/homebrew-tap/ascii_moon
 
       - name: Compute bottle tag + root_url
         id: meta
         shell: bash
         run: |
           set -euo pipefail
-          VERSION="$(brew ruby -e 'puts Formulary.factory("rockydd/tap/ascii_moon").version')"
+          VERSION="$(brew ruby -e 'puts Formulary.factory("rockydd/homebrew-tap/ascii_moon").version')"
           TAG="ascii_moon-bottle-v${VERSION}"
           ROOT_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}"
           echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
@@ -73,7 +67,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          brew bottle --json --root-url="${{ steps.meta.outputs.root_url }}" rockydd/tap/ascii_moon
+          brew bottle --json --root-url="${{ steps.meta.outputs.root_url }}" rockydd/homebrew-tap/ascii_moon
           ls -la
 
       - name: Upload bottle artifacts
@@ -84,13 +78,6 @@ jobs:
             *.bottle*.tar.gz
             *.json
           if-no-files-found: error
-
-      - name: Cleanup tap (avoid setup-homebrew post cleanup failure)
-        if: always()
-        shell: bash
-        run: |
-          set -euo pipefail
-          brew untap rockydd/tap >/dev/null 2>&1 || true
 
   publish:
     if: github.actor != 'github-actions[bot]'
@@ -105,13 +92,6 @@ jobs:
 
       - name: Set up Homebrew
         uses: Homebrew/actions/setup-homebrew@master
-
-      - name: Tap this repository (local)
-        shell: bash
-        run: |
-          set -euo pipefail
-          brew untap rockydd/tap >/dev/null 2>&1 || true
-          brew tap rockydd/tap "${GITHUB_WORKSPACE}"
 
       - name: Download bottle artifacts
         uses: actions/download-artifact@v4
@@ -133,7 +113,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          VERSION="$(brew ruby -e 'puts Formulary.factory("rockydd/tap/ascii_moon").version')"
+          VERSION="$(brew ruby -e 'puts Formulary.factory("rockydd/homebrew-tap/ascii_moon").version')"
           TAG="ascii_moon-bottle-v${VERSION}"
           ROOT_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}"
           echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
@@ -187,7 +167,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cp "$(brew --repo rockydd/tap)/ascii_moon.rb" "${GITHUB_WORKSPACE}/ascii_moon.rb"
+          cp "$(brew --repo rockydd/homebrew-tap)/ascii_moon.rb" "${GITHUB_WORKSPACE}/ascii_moon.rb"
 
       - name: Commit formula changes (bottle block)
         shell: bash
@@ -203,13 +183,6 @@ jobs:
           git add ascii_moon.rb
           git commit -m "ascii_moon: add bottles for v${{ steps.meta.outputs.version }}"
           git push
-
-      - name: Cleanup tap (best-effort)
-        if: always()
-        shell: bash
-        run: |
-          set -euo pipefail
-          brew untap rockydd/tap >/dev/null 2>&1 || true
 
 
 
