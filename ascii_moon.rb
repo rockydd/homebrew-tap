@@ -7,8 +7,10 @@ class AsciiMoon < Formula
 
   bottle do
     root_url "https://github.com/rockydd/homebrew-tap/releases/download/ascii_moon-bottle-v0.3.2"
-    rebuild 1
-    sha256 cellar: :any_skip_relocation, x86_64_linux: "f1ef344e0258bc769316fa45a2034ee099720f3eb35ef6b6836905648296d242"
+    rebuild 2
+    sha256 cellar: :any_skip_relocation, arm64_sequoia: "0172849051de904ba28d92d7d5ac01e57622dcf37fd78ec384b9550508c2f42d"
+    sha256 cellar: :any_skip_relocation, sequoia:       "890f029976f0e2992c77928d4e11279805c5e81be0890370e6871231317b64bf"
+    sha256 cellar: :any_skip_relocation, x86_64_linux:  "0181de3acddd0ba8d83b2089f7bbbd05fd9657faf9676c49894f049c7bdf6fb6"
   end
 
   depends_on "rust" => :build
