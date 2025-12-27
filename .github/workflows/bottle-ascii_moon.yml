@@ -136,17 +136,6 @@ jobs:
               --notes "Automated bottles for ascii_moon v${{ steps.meta.outputs.version }}."
           fi
 
-      - name: Upload bottle tarballs to GitHub Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd dist
-          gh release upload "${{ steps.meta.outputs.tag }}" *.bottle*.tar.gz \
-            --repo "${GITHUB_REPOSITORY}" \
-            --clobber
-
       - name: Combine bottle JSON (all platforms)
         shell: bash
         run: |
@@ -189,6 +178,43 @@ jobs:
             f.write("\n")
           print(f"Wrote combined.json from {len(files)} files")
           PY
+
+      - name: Rename bottle tarballs to expected filenames
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd dist
+          python3 - <<'PY'
+          import json, os, sys
+          with open("combined.json", "r", encoding="utf-8") as f:
+            data = json.load(f)
+          for formula_key, payload in data.items():
+            bottle = (payload or {}).get("bottle") or {}
+            tags = bottle.get("tags") or {}
+            if not isinstance(tags, dict):
+              continue
+            for tag, info in tags.items():
+              if not isinstance(info, dict):
+                continue
+              src = info.get("local_filename")
+              dst = info.get("filename")
+              if not src or not dst or src == dst:
+                continue
+              if os.path.exists(src) and not os.path.exists(dst):
+                os.rename(src, dst)
+          PY
+          ls -la
+
+      - name: Upload bottle tarballs to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd dist
+          gh release upload "${{ steps.meta.outputs.tag }}" *.bottle*.tar.gz \
+            --repo "${GITHUB_REPOSITORY}" \
+            --clobber
 
       - name: Merge bottle JSON into formula
         shell: bash
