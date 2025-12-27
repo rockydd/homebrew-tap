@@ -30,9 +30,9 @@ jobs:
       matrix:
         runner:
           # Intel macOS
-          - macos-13
+          - macos-15-intel
           # Apple Silicon macOS
-          - macos-14
+          - macos-15
           # Linux x86_64
           - ubuntu-22.04
 
@@ -46,6 +46,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # If the tap already exists (e.g. from a previous step), remove it so
+          # we can retap to this workflow's checkout path.
+          brew untap rockydd/tap >/dev/null 2>&1 || true
           brew tap rockydd/tap "${GITHUB_WORKSPACE}"
 
       - name: Install (build bottle)
@@ -100,6 +103,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          brew untap rockydd/tap >/dev/null 2>&1 || true
           brew tap rockydd/tap "${GITHUB_WORKSPACE}"
 
       - name: Download bottle artifacts
