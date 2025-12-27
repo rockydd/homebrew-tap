@@ -147,21 +147,55 @@ jobs:
             --repo "${GITHUB_REPOSITORY}" \
             --clobber
 
+      - name: Combine bottle JSON (all platforms)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd dist
+          python3 - <<'PY'
+          import glob, json, sys
+          files = sorted(glob.glob("*.json"))
+          if not files:
+            print("No JSON files found in dist/", file=sys.stderr)
+            sys.exit(1)
+          combined = {}
+          for path in files:
+            with open(path, "r", encoding="utf-8") as f:
+              data = json.load(f)
+            if not isinstance(data, dict):
+              raise SystemExit(f"{path}: expected JSON object at top-level")
+            for formula_key, payload in data.items():
+              if formula_key not in combined:
+                combined[formula_key] = payload
+                continue
+              # Merge bottle tags across platforms.
+              cb = combined[formula_key].get("bottle") or {}
+              nb = payload.get("bottle") or {}
+              for k in ("root_url", "cellar"):
+                if k in cb and k in nb and cb[k] != nb[k]:
+                  raise SystemExit(f"{path}: bottle.{k} mismatch for {formula_key}: {cb[k]} != {nb[k]}")
+              cb.setdefault("root_url", nb.get("root_url"))
+              cb.setdefault("cellar", nb.get("cellar"))
+              cb["rebuild"] = max(int(cb.get("rebuild", 0) or 0), int(nb.get("rebuild", 0) or 0))
+              cb.setdefault("tags", {})
+              cb_tags = cb["tags"]
+              nb_tags = nb.get("tags") or {}
+              if not isinstance(cb_tags, dict) or not isinstance(nb_tags, dict):
+                raise SystemExit(f"{path}: bottle.tags must be an object for {formula_key}")
+              cb_tags.update(nb_tags)
+              combined[formula_key]["bottle"] = cb
+          with open("combined.json", "w", encoding="utf-8") as f:
+            json.dump(combined, f, indent=2, sort_keys=True)
+            f.write("\n")
+          print(f"Wrote combined.json from {len(files)} files")
+          PY
+
       - name: Merge bottle JSON into formula
         shell: bash
         run: |
           set -euo pipefail
           cd dist
-          shopt -s nullglob
-          JSONS=( *.json )
-          if [ "${#JSONS[@]}" -eq 0 ]; then
-            echo "No JSON files found in dist/"
-            exit 1
-          fi
-          # Apply merges deterministically.
-          for j in "${JSONS[@]}"; do
-            brew bottle --merge --write --no-commit "${j}"
-          done
+          brew bottle --merge --write --no-commit ./combined.json
 
       - name: Sync formula back into workspace
         shell: bash
