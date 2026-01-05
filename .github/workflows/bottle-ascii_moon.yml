@@ -24,10 +24,58 @@ env:
   GITHUB_ACTIONS_HOMEBREW_SELF_HOSTED: 1
 
 jobs:
+  changes:
+    name: Detect formula bump
+    runs-on: ubuntu-22.04
+    outputs:
+      should_build: ${{ steps.detect.outputs.should_build }}
+      reason: ${{ steps.detect.outputs.reason }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect whether url/sha256 changed
+        id: detect
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Always allow manual runs.
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            echo "should_build=true" >> "${GITHUB_OUTPUT}"
+            echo "reason=workflow_dispatch" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          BEFORE="${{ github.event.before }}"
+          AFTER="${{ github.sha }}"
+
+          # If this is the first commit on a branch, be conservative and build.
+          if [[ -z "${BEFORE}" || "${BEFORE}" == "0000000000000000000000000000000000000000" ]]; then
+            echo "should_build=true" >> "${GITHUB_OUTPUT}"
+            echo "reason=no_before_sha" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          old_url="$(git show "${BEFORE}:ascii_moon.rb" | rg -n '^\\s*url\\s+\"' | head -n 1 || true)"
+          new_url="$(git show "${AFTER}:ascii_moon.rb" | rg -n '^\\s*url\\s+\"' | head -n 1 || true)"
+          old_sha="$(git show "${BEFORE}:ascii_moon.rb" | rg -n '^\\s*sha256\\s+\"' | head -n 1 || true)"
+          new_sha="$(git show "${AFTER}:ascii_moon.rb" | rg -n '^\\s*sha256\\s+\"' | head -n 1 || true)"
+
+          if [[ "${old_url}" != "${new_url}" || "${old_sha}" != "${new_sha}" ]]; then
+            echo "should_build=true" >> "${GITHUB_OUTPUT}"
+            echo "reason=version_bump" >> "${GITHUB_OUTPUT}"
+          else
+            echo "should_build=false" >> "${GITHUB_OUTPUT}"
+            echo "reason=no_url_sha_change" >> "${GITHUB_OUTPUT}"
+          fi
+
   build:
-    if: github.actor != 'github-actions[bot]'
+    if: github.actor != 'github-actions[bot]' && needs.changes.outputs.should_build == 'true'
     name: Build bottle (${{ matrix.runner }})
     runs-on: ${{ matrix.runner }}
+    needs: changes
     strategy:
       fail-fast: false
       matrix:
@@ -80,10 +128,10 @@ jobs:
           if-no-files-found: error
 
   publish:
-    if: github.actor != 'github-actions[bot]'
+    if: github.actor != 'github-actions[bot]' && needs.changes.outputs.should_build == 'true'
     name: Publish bottles + update formula
     runs-on: ubuntu-22.04
-    needs: build
+    needs: [changes, build]
 
     steps:
       - uses: actions/checkout@v4

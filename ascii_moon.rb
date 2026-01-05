@@ -17,9 +17,15 @@ class AsciiMoon < Formula
 
   def install
     system "cargo", "install", *std_cargo_args
+    # Keep this safe for older source tarballs (e.g. v0.3.2) that don't include `poems/`.
+    pkgshare.install "poems" if File.directory?("poems")
   end
 
   test do
     system "#{bin}/ascii_moon", "--help"
+    # Poems are available starting from versions that ship `poems/` in the source tarball.
+    if (pkgshare/"poems").exist?
+      assert_predicate pkgshare/"poems/en/the_moon_stevenson.txt", :exist?
+    end
   end
 end
