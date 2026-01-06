@@ -6,11 +6,11 @@ class AsciiMoon < Formula
   license "MIT"
 
   bottle do
-    root_url "https://github.com/rockydd/homebrew-tap/releases/download/ascii_moon-bottle-v0.3.2"
-    rebuild 3
-    sha256 cellar: :any_skip_relocation, arm64_sequoia: "cd7892b7223b4824175222553faf777922a268f1ad86eb1c2b2b3293cbd62fed"
-    sha256 cellar: :any_skip_relocation, sequoia:       "934ada013505275ea78ef4b95b40dae53f735accd074a5e192c0daacd0e2de0e"
-    sha256 cellar: :any_skip_relocation, x86_64_linux:  "1e95ef5d5b7d2ce10530f38c1b4341bd69eb3ebcb5f137e857a905febd833a3a"
+    root_url "https://github.com/rockydd/homebrew-tap/releases/download/ascii_moon-bottle-v0.4.0"
+    rebuild 4
+    sha256 cellar: :any_skip_relocation, arm64_sequoia: "fd752837e26c7fa2177a759dc38690bd313e901c8966d7de893bc4cc99760efb"
+    sha256 cellar: :any_skip_relocation, sequoia:       "92ad27bfc0da9978573f4a22ca011835c832c569d75a543d40cb69df92e226aa"
+    sha256 cellar: :any_skip_relocation, x86_64_linux:  "b79258ed7764889380d989390665eed72b636b77c0902f5ab9a014936b78b622"
   end
 
   depends_on "rust" => :build
