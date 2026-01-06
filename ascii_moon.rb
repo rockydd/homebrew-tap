@@ -1,8 +1,8 @@
 class AsciiMoon < Formula
   desc "A TUI to show the moon phase"
   homepage "https://github.com/rockydd/ascii_moon"
-  url "https://github.com/rockydd/ascii_moon/archive/refs/tags/v0.3.2.tar.gz"
-  sha256 "17c35528abedae5ce90b3777631692665d689f394aaea698c6d4aee004d399b0"
+  url "https://github.com/rockydd/ascii_moon/archive/refs/tags/v0.4.0.tar.gz"
+  sha256 "8f785525e86cf3a1200a6c5ca716fce96d76fe7d8984799e7a8de97910e42867"
   license "MIT"
 
   bottle do
