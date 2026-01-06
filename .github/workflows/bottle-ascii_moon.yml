@@ -58,10 +58,11 @@ jobs:
             exit 0
           fi
 
-          old_url="$(git show "${BEFORE}:ascii_moon.rb" | rg -n '^\\s*url\\s+\"' | head -n 1 || true)"
-          new_url="$(git show "${AFTER}:ascii_moon.rb" | rg -n '^\\s*url\\s+\"' | head -n 1 || true)"
-          old_sha="$(git show "${BEFORE}:ascii_moon.rb" | rg -n '^\\s*sha256\\s+\"' | head -n 1 || true)"
-          new_sha="$(git show "${AFTER}:ascii_moon.rb" | rg -n '^\\s*sha256\\s+\"' | head -n 1 || true)"
+          # Use POSIX tools only (GitHub runners may not have ripgrep installed).
+          old_url="$(git show "${BEFORE}:ascii_moon.rb" | grep -E '^[[:space:]]*url[[:space:]]+"' | head -n 1 || true)"
+          new_url="$(git show "${AFTER}:ascii_moon.rb" | grep -E '^[[:space:]]*url[[:space:]]+"' | head -n 1 || true)"
+          old_sha="$(git show "${BEFORE}:ascii_moon.rb" | grep -E '^[[:space:]]*sha256[[:space:]]+"' | head -n 1 || true)"
+          new_sha="$(git show "${AFTER}:ascii_moon.rb" | grep -E '^[[:space:]]*sha256[[:space:]]+"' | head -n 1 || true)"
 
           if [[ "${old_url}" != "${new_url}" || "${old_sha}" != "${new_sha}" ]]; then
             echo "should_build=true" >> "${GITHUB_OUTPUT}"
